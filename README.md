@@ -17,11 +17,13 @@ This Shiny dashboard application provides time series forecasting capabilities f
 - Metrics analysis:
   - Sales Revenue
   - Quantity
+![Dashboard-demo](images/image-02.png)
 - Visualization components:
   - Top 5 related products comparison
   - Time series decomposition
   - Forecast plots with confidence intervals
 - Detailed data tables for both historical and forecast data
+![Dashboard-demo](images/image-03.png)
 
 ## Prerequisites
 The following R packages are required:
