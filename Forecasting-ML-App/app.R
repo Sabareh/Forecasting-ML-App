@@ -147,7 +147,6 @@ server <- function(input, output, session) {
     dt1
   })
   
-  # IMPORTANT: DO NOT CHANGE NAME "productdata"; IT IS LINKED TO A CSS PROPERTY
   output$productdata <- renderDataTable({
     dt1 <- getProdData()
     datatable(dt1, width="500px", options = list(pageLength=30,dom = 't',columnDefs = list(list(className = 'dt-left', targets = "_all"))),rownames = FALSE,caption = htmltools::tags$caption(style = 'caption-side: top; text-align: left; color:#de6e6e;','Table 2: ', htmltools::h5('Sales Data from NHS Records'))
@@ -162,19 +161,16 @@ server <- function(input, output, session) {
   })
   
   
-  # Read Sales Data and find top 5 products in the same category
   
-  # Read Sales Data and find top 5 products in the same category
+  # top 5 products in the same category
   getSalesData <- eventReactive(c(input$products, input$forecastmetric), {
     # Obtain the top 5 products based on the input
     top5 <- getTop5(input$products)
     
-    # Ensure top5 has values to avoid empty selections
     if (length(top5) == 0) {
       return(data.table(Month = NA, Product = NA, Metric = NA))
     }
     
-    # Create the data.table with proper syntax for dynamic column selection
     if (input$forecastmetric == "trx") {
       res <- productdb[BNFNAME %in% top5, .(Month = month, 
                                             Product = BNFNAME, 
@@ -185,21 +181,27 @@ server <- function(input, output, session) {
                                             Metric = ACTCOST)]
     }
     
-    # Ensure result is a data.table
     setDT(res)
     return(res)
   })
   
   
-  # Run the forecasting model
+  # forecasting model
   
   getforecast <- eventReactive(c(input$forecastmodel,input$forecastmetric),{
     m <- input$forecastmodel
     tsdata <- createTS()
+    if (is.null(tsdata)) {
+      return(NULL)
+    }
+    
     tsd <- tsdata$tsd
     data <- tsdata$data
     extra=""
-    # "Auto","Holt-Winters","TBATS","Auto ARIMA"
+    
+    if (length(tsd) < 2) {
+      return(NULL)
+    }
     if (m=="hw"){
       res <- forecast(HoltWinters(tsd))
     } else if (m=="autoarima"){
@@ -207,20 +209,23 @@ server <- function(input, output, session) {
     } else if (m=="tbats"){
       res <- forecast(tbats(tsd))
     } else if (m=="auto"){
-      res <- forecast(tsd)
+      # Use ets() instead of direct forecast()
+      fit <- ets(tsd)
+      res <- forecast(fit)
     } else if (m=="mcmc"){
       dtx <- tsdata$data[,.(ds=as.Date(paste0(month,"-01"),format="%Y-%m-%d"),y=Metric)]
       m <- prophet(dtx)
       nperiods <- 22
       future <- make_future_dataframe(m, periods = nperiods, freq = 'month')
       origres <- predict(m, future, mcmc.samples = 1000)
-      res <- data.frame(origres %>% rename (month=ds) %>% slice((n()-nperiods):n()))
+      res <- data.frame(origres %>% rename(month=ds) %>% slice((n()-nperiods):n()))
       row.names(res) <- substr(res$month,1,7)
       res$month <- NULL
       res <- res[,c(sort(names(res)[names(res) %like% "yhat*"]),names(res)[!names(res) %like% "yhat*"])]
       setnames(res,gsub("yhat","fcst",names(res)))
       extra = list(m=m,origres=origres)
     }
+    
     list(res=res,extra=extra)
   })
   
@@ -253,12 +258,11 @@ server <- function(input, output, session) {
   })
   
   
-  # Plotting the data using Plot.ly API
+  # Plotting using Plot.ly 
   
   output$top5plot <- renderPlotly({
     data <- getSalesData()
     
-    # Fix the dcast operation by specifying value.var explicitly
     dc <- dcast(data, Month ~ Product, value.var = "Metric")
     
     # Convert Month to proper format
@@ -318,7 +322,7 @@ server <- function(input, output, session) {
     pplot
   })
   
-  # Print the results in a table
+  # Printing  the results in a table
   
   output$forecastdata <- renderDataTable({
     currency=''
