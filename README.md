@@ -2,7 +2,7 @@
 R machine learning application that performs forecasting on pharmaceutical medicine sales data using information obtained form NHS (UK) General Practitioner (GP) datasets.
 
 # NHS Prescription Forecasting Dashboard
-
+![Dashboard](images/image-01.png)
 ## Overview
 This Shiny dashboard application provides time series forecasting capabilities for NHS prescription data. It allows users to analyze and forecast prescription quantities and sales revenue using various forecasting models.
 
